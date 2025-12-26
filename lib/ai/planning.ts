@@ -18,7 +18,15 @@ const PlanStepSchema = z.object({
     .string()
     .describe("Clear description of what this step accomplishes"),
   tool: z
-    .enum(["fetchUrl", "analyzeContent", "finalAnswer"])
+    .enum([
+      "fetchUrl",
+      "webSearch",
+      "webExtract",
+      "analyzeContent",
+      "createDocument",
+      "updateDocument",
+      "finalAnswer",
+    ])
     .optional()
     .describe("Which tool to use for this step, if applicable"),
 });
@@ -47,13 +55,17 @@ Your job is to break down a user's request into a clear, actionable plan.
 Guidelines:
 - Create between 1-7 steps (prefer fewer, focused steps)
 - Each step should be concrete and achievable
-- Consider which tools might be needed: fetchUrl, analyzeContent, finalAnswer
+- Consider which tools might be needed based on the task
 - The final step should usually involve synthesizing results with finalAnswer
 - Keep the plan focused on the user's actual request
 
 Available tools:
+- webSearch: Search the web for information using Tavily
+- webExtract: Extract clean content from multiple URLs
 - fetchUrl: Fetch and extract content from a specific URL
 - analyzeContent: Analyze and synthesize information
+- createDocument: Create a new document (text, code, or spreadsheet)
+- updateDocument: Modify an existing document
 - finalAnswer: Provide the final response to the user`;
 
 export interface PlanContext {
