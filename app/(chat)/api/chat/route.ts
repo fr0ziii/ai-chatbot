@@ -26,6 +26,12 @@ import {
   updateChatTitleById,
   updateMessage,
 } from "@/lib/db/queries";
+import {
+  initializeAgentState,
+  updatePlan,
+  getAgentState,
+} from "@/lib/ai/state";
+import { createPlan, shouldCreatePlan } from "@/lib/ai/planning";
 import type { DBMessage } from "@/lib/db/schema";
 import { ChatSDKError } from "@/lib/errors";
 import type { ChatMessage } from "@/lib/types";
@@ -112,6 +118,9 @@ export async function POST(request: Request) {
         visibility: selectedVisibilityType,
       });
 
+      // Initialize agent state for new chat
+      await initializeAgentState(id);
+
       // Start title generation in parallel (don't await)
       titlePromise = generateTitleFromUserMessage({ message });
     }
@@ -165,11 +174,36 @@ export async function POST(request: Request) {
           selectedChatModel.includes("reasoning") ||
           selectedChatModel.includes("thinking");
 
+        // For non-reasoning models, check if we need to create a plan
+        if (!isReasoningModel && message?.role === "user" && !isToolApprovalFlow) {
+          const userContent = message.parts
+            .filter((p): p is { type: "text"; text: string } => p.type === "text")
+            .map((p) => p.text)
+            .join(" ");
+
+          if (shouldCreatePlan(userContent)) {
+            try {
+              dataStream.write({ type: "data-agent-status", data: "planning" });
+
+              const plan = await createPlan(userContent);
+              await updatePlan(id, plan);
+
+              dataStream.write({ type: "data-agent-plan", data: plan });
+              dataStream.write({ type: "data-agent-status", data: "executing" });
+            } catch (error) {
+              console.error("Failed to create plan:", error);
+              // Continue without plan - agent will still work
+            }
+          }
+        }
+
+
         const agent = createAgent({
           model: getLanguageModel(selectedChatModel),
           systemPrompt: systemPrompt({ selectedChatModel, requestHints }),
           session,
           dataStream,
+          chatId: id,
           isReasoningModel,
           maxSteps: 5,
         });

@@ -19,8 +19,12 @@ import type { VisibilityType } from "@/components/visibility-selector";
 import { ChatSDKError } from "../errors";
 import { generateUUID } from "../utils";
 import {
+  type AgentState,
+  type AgentStateStatus,
+  agentState,
   type Chat,
   chat,
+  type CompletedStep,
   type DBMessage,
   document,
   message,
@@ -597,6 +601,137 @@ export async function getStreamIdsByChatId({ chatId }: { chatId: string }) {
     throw new ChatSDKError(
       "bad_request:database",
       "Failed to get stream ids by chat id"
+    );
+  }
+}
+
+// =====================
+// Agent State Functions
+// =====================
+
+export async function getAgentState({
+  chatId,
+}: {
+  chatId: string;
+}): Promise<AgentState | null> {
+  try {
+    const [state] = await db
+      .select()
+      .from(agentState)
+      .where(eq(agentState.chatId, chatId))
+      .orderBy(desc(agentState.createdAt))
+      .limit(1);
+    return state ?? null;
+  } catch (_error) {
+    throw new ChatSDKError(
+      "bad_request:database",
+      "Failed to get agent state"
+    );
+  }
+}
+
+export async function saveAgentState({
+  chatId,
+  status = "idle",
+}: {
+  chatId: string;
+  status?: AgentStateStatus;
+}): Promise<AgentState> {
+  try {
+    const now = new Date();
+    const [state] = await db
+      .insert(agentState)
+      .values({
+        chatId,
+        status,
+        plan: null,
+        currentStepIndex: 0,
+        completedSteps: [],
+        context: {},
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+    return state;
+  } catch (_error) {
+    throw new ChatSDKError(
+      "bad_request:database",
+      "Failed to save agent state"
+    );
+  }
+}
+
+export async function updateAgentState({
+  chatId,
+  updates,
+}: {
+  chatId: string;
+  updates: Partial<
+    Pick<
+      AgentState,
+      "plan" | "currentStepIndex" | "completedSteps" | "context" | "status"
+    >
+  >;
+}): Promise<AgentState | null> {
+  try {
+    const [state] = await db
+      .update(agentState)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(agentState.chatId, chatId))
+      .returning();
+    return state ?? null;
+  } catch (_error) {
+    throw new ChatSDKError(
+      "bad_request:database",
+      "Failed to update agent state"
+    );
+  }
+}
+
+export async function addCompletedStep({
+  chatId,
+  step,
+}: {
+  chatId: string;
+  step: CompletedStep;
+}): Promise<AgentState | null> {
+  try {
+    const existingState = await getAgentState({ chatId });
+    if (!existingState) return null;
+
+    const updatedSteps = [...(existingState.completedSteps ?? []), step];
+    const [state] = await db
+      .update(agentState)
+      .set({
+        completedSteps: updatedSteps,
+        currentStepIndex: (existingState.currentStepIndex ?? 0) + 1,
+        updatedAt: new Date(),
+      })
+      .where(eq(agentState.chatId, chatId))
+      .returning();
+    return state ?? null;
+  } catch (_error) {
+    throw new ChatSDKError(
+      "bad_request:database",
+      "Failed to add completed step"
+    );
+  }
+}
+
+export async function deleteAgentState({
+  chatId,
+}: {
+  chatId: string;
+}): Promise<void> {
+  try {
+    await db.delete(agentState).where(eq(agentState.chatId, chatId));
+  } catch (_error) {
+    throw new ChatSDKError(
+      "bad_request:database",
+      "Failed to delete agent state"
     );
   }
 }

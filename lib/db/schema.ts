@@ -2,6 +2,7 @@ import type { InferSelectModel } from "drizzle-orm";
 import {
   boolean,
   foreignKey,
+  integer,
   json,
   pgTable,
   primaryKey,
@@ -168,3 +169,65 @@ export const stream = pgTable(
 );
 
 export type Stream = InferSelectModel<typeof stream>;
+
+// Agent state status enum type
+export const agentStateStatusEnum = [
+  "idle",
+  "planning",
+  "executing",
+  "reflecting",
+  "completed",
+  "failed",
+] as const;
+export type AgentStateStatus = (typeof agentStateStatusEnum)[number];
+
+// Plan step structure
+export type PlanStep = {
+  id: string;
+  description: string;
+  tool?: string;
+  status: "pending" | "in_progress" | "done" | "failed";
+  result?: string;
+};
+
+// Plan structure
+export type AgentPlan = {
+  goal: string;
+  steps: PlanStep[];
+  reasoning: string;
+};
+
+// Completed step result
+export type CompletedStep = {
+  stepId: string;
+  description: string;
+  result: string;
+  timestamp: string;
+};
+
+// Agent state table for persistent memory
+export const agentState = pgTable(
+  "AgentState",
+  {
+    id: uuid("id").notNull().defaultRandom(),
+    chatId: uuid("chatId").notNull(),
+    plan: json("plan").$type<AgentPlan | null>(),
+    currentStepIndex: integer("currentStepIndex").default(0),
+    completedSteps: json("completedSteps").$type<CompletedStep[]>().default([]),
+    context: json("context").$type<Record<string, unknown>>().default({}),
+    status: varchar("status", { enum: agentStateStatusEnum })
+      .notNull()
+      .default("idle"),
+    createdAt: timestamp("createdAt").notNull(),
+    updatedAt: timestamp("updatedAt").notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.id] }),
+    chatRef: foreignKey({
+      columns: [table.chatId],
+      foreignColumns: [chat.id],
+    }),
+  })
+);
+
+export type AgentState = InferSelectModel<typeof agentState>;

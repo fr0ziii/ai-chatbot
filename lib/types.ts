@@ -42,6 +42,13 @@ export type CustomUIDataTypes = {
   clear: null;
   finish: null;
   "chat-title": string;
+  // Agent state streaming types
+  "agent-plan": {
+    goal: string;
+    steps: Array<{ id: string; description: string; status: string }>;
+  };
+  "agent-step-progress": { stepIndex: number; status: string; result?: string };
+  "agent-status": string;
 };
 
 export type ChatMessage = UIMessage<
