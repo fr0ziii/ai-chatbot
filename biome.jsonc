@@ -12,13 +12,13 @@
   "linter": {
     "rules": {
       "suspicious": {
-        /* Needs more work to fix */
+        /* Keep relaxed for demo flexibility */
         "noExplicitAny": "off",
 
         /* Allow for Tailwind @ rules */
         "noUnknownAtRules": "off",
 
-        /* Allowing console for debugging */
+        /* Useful for demo debugging */
         "noConsole": "off",
 
         /* Needed for generateUUID() */
@@ -28,7 +28,7 @@
         /* Allowing magic numbers */
         "noMagicNumbers": "off",
 
-        /* Needs more work to fix */
+        /* Allow nested ternary for demo */
         "noNestedTernary": "off"
       },
       "nursery": {
@@ -36,16 +36,25 @@
         "noUnnecessaryConditions": "off"
       },
       "complexity": {
-        /* Needs more work to fix */
+        /* Relaxed for demo */
         "noExcessiveCognitiveComplexity": "off",
 
-        /* This one has false positives. It's a bit... iffy 😉 */
+        /* This one has false positives */
         "useSimplifiedLogicExpression": "off"
       },
       "a11y": {
-        /* Needs more work to fix */
+        /* Icons don't need titles in demo */
         "noSvgWithoutTitle": "off"
+      },
+      "correctness": {
+        /* Keep imports clean */
+        "noUnusedImports": "error"
       }
     }
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "lineWidth": 80
   }
 }
