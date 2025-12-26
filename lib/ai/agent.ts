@@ -5,12 +5,10 @@ import {
   smoothStream,
   type UIMessageStreamWriter,
   type LanguageModel,
+  hasToolCall,
 } from "ai";
 import type { Session } from "next-auth";
-import { createDocument } from "./tools/create-document";
-import { updateDocument } from "./tools/update-document";
-import { requestSuggestions } from "./tools/request-suggestions";
-import { getWeather } from "./tools/get-weather";
+import { agentTools } from "./tools";
 import type { ChatMessage } from "@/lib/types";
 
 export type CreateAgentOptions = {
@@ -23,17 +21,9 @@ export type CreateAgentOptions = {
 };
 
 // Define the chat tools for the agent
-const createChatTools = (
-  session: Session,
-  dataStream: UIMessageStreamWriter<ChatMessage>
-) => ({
-  getWeather,
-  createDocument: createDocument({ session, dataStream }),
-  updateDocument: updateDocument({ session, dataStream }),
-  requestSuggestions: requestSuggestions({ session, dataStream }),
-});
+const createChatTools = () => agentTools;
 
-type ChatTools = ReturnType<typeof createChatTools>;
+type ChatTools = typeof agentTools;
 
 export function createAgent({
   model,
@@ -54,14 +44,15 @@ export function createAgent({
     });
   }
 
-  const tools = createChatTools(session, dataStream);
+  const tools = createChatTools();
 
   return new ToolLoopAgent<never, ChatTools>({
     model,
     instructions: systemPrompt,
     tools,
     toolChoice: "auto",
-    stopWhen: stepCountIs(maxSteps),
+    stopWhen: (event) =>
+      hasToolCall("finalAnswer")(event) || stepCountIs(maxSteps)(event),
     prepareStep: async () => {
       // Future: context trimming, model escalation
       return {};

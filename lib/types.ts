@@ -1,10 +1,10 @@
 import type { InferUITool, UIMessage } from "ai";
 import { z } from "zod";
 import type { ArtifactKind } from "@/components/artifact";
-import type { createDocument } from "./ai/tools/create-document";
-import type { getWeather } from "./ai/tools/get-weather";
-import type { requestSuggestions } from "./ai/tools/request-suggestions";
-import type { updateDocument } from "./ai/tools/update-document";
+import type { webSearch } from "./ai/tools/web-search";
+import type { fetchUrl } from "./ai/tools/fetch-url";
+import type { analyzeContent } from "./ai/tools/analyze-content";
+import type { finalAnswer } from "./ai/tools/final-answer";
 import type { Suggestion } from "./db/schema";
 
 export type { AgentMessage } from "./ai/agent";
@@ -17,18 +17,16 @@ export const messageMetadataSchema = z.object({
 
 export type MessageMetadata = z.infer<typeof messageMetadataSchema>;
 
-type weatherTool = InferUITool<typeof getWeather>;
-type createDocumentTool = InferUITool<ReturnType<typeof createDocument>>;
-type updateDocumentTool = InferUITool<ReturnType<typeof updateDocument>>;
-type requestSuggestionsTool = InferUITool<
-  ReturnType<typeof requestSuggestions>
->;
+type webSearchTool = InferUITool<typeof webSearch>;
+type fetchUrlTool = InferUITool<typeof fetchUrl>;
+type analyzeContentTool = InferUITool<typeof analyzeContent>;
+type finalAnswerTool = InferUITool<typeof finalAnswer>;
 
 export type ChatTools = {
-  getWeather: weatherTool;
-  createDocument: createDocumentTool;
-  updateDocument: updateDocumentTool;
-  requestSuggestions: requestSuggestionsTool;
+  webSearch: webSearchTool;
+  fetchUrl: fetchUrlTool;
+  analyzeContent: analyzeContentTool;
+  finalAnswer: finalAnswerTool;
 };
 
 export type CustomUIDataTypes = {
